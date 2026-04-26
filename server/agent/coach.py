@@ -22,29 +22,29 @@ MAX_TOOL_ROUNDS = 3
 
 
 async def _get_llm_client():
-    """Get the first available LLM client (API-first, Ollama fallback)."""
-    if await external_client.is_available():
-        return external_client
+    """Get the first available LLM client (Ollama-first, external API fallback)."""
     if await ollama_client.is_available():
         return ollama_client
+    if await external_client.is_available():
+        return external_client
     return None
 
 
 async def _get_llm_response(messages: list[dict]) -> str:
-    """Get a response from the configured LLM (API-first, Ollama as fallback)."""
-    # 1. Primary: External API (Groq / Google AI)
-    if await external_client.is_available():
-        logger.info(f"Using external LLM ({external_client.provider}: {external_client.model})")
-        return await external_client.chat(messages)
-
-    # 2. Fallback: Local Ollama (if running)
+    """Get a response from the configured LLM (Ollama-first, external API as fallback)."""
+    # 1. Primary: Local Ollama (Gemma 4 E2B)
     if await ollama_client.is_available():
         logger.info(f"Using local Ollama ({ollama_client.model})")
         return await ollama_client.chat(messages)
 
+    # 2. Fallback: External API (Groq / Google AI)
+    if await external_client.is_available():
+        logger.info(f"Using external LLM ({external_client.provider}: {external_client.model})")
+        return await external_client.chat(messages)
+
     raise RuntimeError(
-        "No LLM available. Configure COACH_EXTERNAL_LLM_API_KEY in .env "
-        "or start a local Ollama server."
+        "No LLM available. Start Ollama with a model or configure "
+        "COACH_EXTERNAL_LLM_API_KEY in .env."
     )
 
 

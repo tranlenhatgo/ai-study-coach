@@ -7,7 +7,7 @@ class Settings(BaseSettings):
 
     # Ollama (local LLM)
     ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "phi3:mini"
+    ollama_model: str = "gemma4:e2b"
     ollama_timeout: int = 120
 
     # External LLM (fallback for heavy tasks)

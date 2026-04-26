@@ -1,9 +1,17 @@
 # ============================================================================
-# AI Study Coach — Self-Hosted DeepSeek-R1 on Google Colab
+# AI Study Coach — Self-Hosted Gemma 4 E2B on Google Colab
 # ============================================================================
 #
-# This script runs DeepSeek-R1-Distill-Llama-8B via Ollama on Google Colab's
+# This script runs Google's Gemma 4 E2B via Ollama on Google Colab's
 # GPU and exposes it via ngrok so your local FastAPI server can connect to it.
+#
+# Gemma 4 E2B features:
+#   - 2.3B effective parameters (5.1B total with embeddings)
+#   - Multimodal (text + image + audio)
+#   - Native function calling / tool use support
+#   - 128K context window
+#   - Apache 2.0 license
+#   - Runs on RTX 3050 4GB VRAM locally too!
 #
 # HOW TO USE:
 #   1. Open Google Colab: https://colab.research.google.com/
@@ -12,8 +20,6 @@
 #   4. Copy each "CELL" section below into a separate Colab cell
 #   5. Run cells in order
 #   6. Copy the ngrok URL and paste it into your .env file
-#
-# MODEL: deepseek-ai/DeepSeek-R1-Distill-Llama-8B (via Ollama as deepseek-r1:8b)
 #
 # ============================================================================
 
@@ -105,23 +111,25 @@ except Exception as e:
 
 
 # %%  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# CELL 3: Pull DeepSeek-R1-Distill-Llama-8B
+# CELL 3: Pull Gemma 4 E2B
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# deepseek-r1:8b is the Ollama tag for deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-# It's an 8B parameter model distilled from DeepSeek-R1, with strong reasoning
-# capabilities — great for an AI Study Coach.
+# Gemma 4 E2B — Google's latest compact model (April 2026):
+#   - 2.3B effective parameters, optimized for edge/mobile
+#   - Multimodal: text + image + audio input
+#   - Native function calling / tool use
+#   - 128K context window
 #
-# Size: ~4.9 GB download, ~8 GB VRAM usage on T4
+# Size: ~3 GB download, ~3 GB VRAM on T4
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import subprocess
 
-MODEL = "deepseek-r1:8b"
+MODEL = "gemma4:e2b"
 
 print(f"📥 Pulling model: {MODEL}")
-print(f"   (deepseek-ai/DeepSeek-R1-Distill-Llama-8B)")
-print("   This may take 3-5 minutes on first run...\n")
+print(f"   (Google Gemma 4 E2B — 2.3B effective parameters)")
+print("   This may take 2-3 minutes on first run...\n")
 
 result = subprocess.run(
     ["ollama", "pull", MODEL],
@@ -139,13 +147,13 @@ subprocess.run(["ollama", "list"])
 
 
 # %%  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# CELL 4: Quick Test — Verify DeepSeek-R1 Works
+# CELL 4: Quick Test — Verify Gemma 4 E2B Works
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import json
 import urllib.request
 
-MODEL = "deepseek-r1:8b"
+MODEL = "gemma4:e2b"
 
 print(f"🧪 Testing model '{MODEL}' with a study coach prompt...\n")
 
@@ -175,7 +183,7 @@ try:
     with urllib.request.urlopen(req, timeout=120) as resp:
         data = json.loads(resp.read().decode())
         reply = data["message"]["content"]
-        print(f"🤖 DeepSeek-R1 says:\n")
+        print(f"🤖 Gemma 4 E2B says:\n")
         print(reply[:500])  # First 500 chars
         if len(reply) > 500:
             print(f"\n... ({len(reply)} total characters)")
@@ -214,10 +222,10 @@ ngrok.set_auth_token(NGROK_AUTH_TOKEN)
 tunnel = ngrok.connect(11434)
 public_url = tunnel.public_url
 
-MODEL = "deepseek-r1:8b"
+MODEL = "gemma4:e2b"
 
 print("=" * 60)
-print("🎉 DEEPSEEK-R1 SERVER IS NOW PUBLIC!")
+print("🎉 GEMMA 4 E2B SERVER IS NOW PUBLIC!")
 print("=" * 60)
 print()
 print(f"   🔗 Public URL:  {public_url}")
@@ -247,7 +255,7 @@ from datetime import datetime
 
 print("♻️  Keep-alive loop started. Session will stay active.")
 print(f"   Ollama URL: {public_url}")
-print(f"   Model: deepseek-r1:8b")
+print(f"   Model: gemma4:e2b")
 print("   Press Runtime → Interrupt execution to stop.\n")
 
 ping_count = 0

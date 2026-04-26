@@ -37,7 +37,7 @@ User → Chat Widget (WS) → FastAPI (:8000) → Quiz API (Spring Boot :8080) �
 - `server/routes/chat.py` — `POST /chat`, `POST /chat/agentic`, and `WS /ws/chat` (streaming + actions)
 - `server/routes/health.py` — `GET /health` with LLM status
 - `widget/` — Embeddable chat widget (JS/CSS) with action dispatch via `onAction` callback
-- `colab/` — Google Colab notebooks for remote inference and QLoRA fine-tuning
+- `colab/` — Google Colab notebooks for Gemma 4 E2B inference and QLoRA fine-tuning
 
 ## Running the Server
 

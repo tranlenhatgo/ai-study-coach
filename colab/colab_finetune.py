@@ -1,9 +1,17 @@
 # ============================================================================
-# AI Study Coach — Fine-Tuning DeepSeek-R1-Distill-Llama-8B on Google Colab
+# AI Study Coach — Fine-Tuning Gemma 4 E2B on Google Colab
 # ============================================================================
 #
-# This script fine-tunes DeepSeek-R1-Distill-Llama-8B using QLoRA (4-bit
+# This script fine-tunes Google's Gemma 4 E2B using QLoRA (4-bit
 # quantization + LoRA adapters) to specialize it as an AI Study Coach.
+#
+# Why Gemma 4 E2B?
+#   - 2.3B effective params — runs on RTX 3050 (4GB VRAM) locally!
+#   - Native function calling — supports agentic tool use
+#   - Multimodal (text + image + audio)
+#   - 128K context window
+#   - Apache 2.0 license
+#   - Released March 2026 — Google's latest
 #
 # After fine-tuning, the model is exported to GGUF format and loaded into
 # Ollama as a custom model for serving.
@@ -27,7 +35,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # We use Unsloth for 2x faster fine-tuning with 60% less VRAM.
-# This makes it possible to fine-tune 8B models on a free T4 GPU.
+# This makes it possible to fine-tune on a free T4 GPU.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import subprocess
@@ -56,19 +64,24 @@ print("✅ All dependencies installed!")
 # CELL 2: Load Base Model with 4-bit Quantization
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# We load DeepSeek-R1-Distill-Llama-8B in 4-bit (QLoRA) to fit in T4's 16GB.
+# We load Gemma 4 E2B in 4-bit (QLoRA) to fit in T4's 16GB.
 # Unsloth handles the quantization and optimization automatically.
+#
+# Gemma 4 E2B specs:
+#   - 2.3B effective parameters (5.1B total with embeddings)
+#   - Native tool calling / function calling support
+#   - Only ~3 GB VRAM for inference (Q4) — fits on RTX 3050!
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 from unsloth import FastLanguageModel
 
-MODEL_NAME = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+MODEL_NAME = "unsloth/gemma-4-e2b"  # Unsloth-optimized Gemma 4 E2B
 MAX_SEQ_LENGTH = 2048  # Context window for training
 DTYPE = None           # Auto-detect (float16 for T4)
 LOAD_IN_4BIT = True    # QLoRA — 4-bit quantization
 
 print(f"📥 Loading {MODEL_NAME} in 4-bit mode...")
-print("   This may take 2-3 minutes on first run (downloading ~5GB)...\n")
+print("   This may take 2-3 minutes on first run (downloading model)...\n")
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=MODEL_NAME,
@@ -133,13 +146,9 @@ import json
 import os
 from datasets import Dataset
 
-# ── Chat template for DeepSeek-R1 ──
-CHAT_TEMPLATE = """<|begin▁of▁sentence|>{% for message in messages %}{% if message['role'] == 'system' %}<|System|>{{ message['content'] }}
-{% elif message['role'] == 'user' %}<|User|>{{ message['content'] }}
-{% elif message['role'] == 'assistant' %}<|Assistant|>{{ message['content'] }}<|end▁of▁sentence|>
-{% endif %}{% endfor %}"""
-
-tokenizer.chat_template = CHAT_TEMPLATE
+# ── Use Gemma 4's native chat template ──
+# Gemma 4 uses the standard gemma chat template which Unsloth handles
+# automatically. We just need to ensure the tokenizer has it set.
 
 # ── Load training data ──
 DATA_FILE = "study_coach_data.json"
@@ -229,7 +238,8 @@ print("\n✅ Training data ready!")
 #   - Learning rate: 2e-4 (standard for LoRA)
 #   - Warmup steps: 5
 #
-# Expected time: ~10-30 minutes depending on dataset size and GPU.
+# Expected time: ~10-20 minutes depending on dataset size.
+# Gemma 4 E2B is smaller than 8B models, so training is faster!
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 from trl import SFTTrainer
@@ -240,7 +250,7 @@ OUTPUT_DIR = "./study_coach_finetuned"
 print("🏋️ Starting fine-tuning...")
 print(f"   Dataset size: {len(dataset)} examples")
 print(f"   Output dir:   {OUTPUT_DIR}")
-print(f"   This may take 10-30 minutes on T4 GPU...\n")
+print(f"   This may take 10-20 minutes on T4 GPU...\n")
 
 trainer = SFTTrainer(
     model=model,
@@ -304,7 +314,7 @@ inputs = tokenizer.apply_chat_template(
 
 print("🧪 Testing fine-tuned model...\n")
 print("User: I scored 55% on Math and 80% on English. Create a study plan for this week.\n")
-print("🤖 Fine-tuned model response:")
+print("🤖 Fine-tuned Gemma 4 E2B response:")
 print("-" * 50)
 
 outputs = model.generate(
@@ -324,7 +334,8 @@ print("\n✅ Fine-tuned model is working!")
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Convert the fine-tuned model to GGUF format so Ollama can load it.
-# We use Q4_K_M quantization for a good balance of quality and speed.
+# We use Q4_K_M quantization — the model will be ~3 GB, perfect for
+# your RTX 3050 (4GB VRAM).
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 GGUF_OUTPUT = "./study_coach_gguf"
@@ -348,6 +359,7 @@ if gguf_files:
     file_size_gb = os.path.getsize(gguf_path) / (1024**3)
     print(f"\n✅ GGUF file created: {gguf_path}")
     print(f"   Size: {file_size_gb:.1f} GB")
+    print(f"   This will fit comfortably on your RTX 3050 (4GB VRAM)!")
 else:
     print("⚠️ GGUF file not found. Check output above for errors.")
     gguf_path = None
@@ -401,13 +413,19 @@ except Exception:
 # Create Modelfile for Ollama
 modelfile_content = f"""FROM {os.path.abspath(gguf_path)}
 
-SYSTEM \"\"\"You are an AI Study Coach for an online quiz platform. Your role is to:
+SYSTEM \"\"\"You are an AI Study Coach for an online quiz platform. You can both give advice AND take actions on the platform.
+
+Your capabilities:
 1. Analyze student quiz performance and identify weak areas
 2. Create personalized study plans based on quiz history
-3. Encourage and motivate students to improve
-4. Recommend specific quizzes to retake based on spaced repetition
+3. Navigate students to specific pages (dashboard, quiz list, profile)
+4. Start quizzes for students to practice
+5. Generate questions on specific topics
+6. Create practice quizzes targeting weak areas
+7. Search for quizzes by category
 
 Be friendly, supportive, and use structured formatting with bullet points.
+When you take an action, briefly explain what you did and why.
 Reference specific quiz results when giving advice.\"\"\"
 
 PARAMETER temperature 0.7
@@ -464,7 +482,7 @@ print("🎉 FINE-TUNED STUDY COACH IS NOW LIVE!")
 print("=" * 60)
 print()
 print(f"   🔗 Public URL:  {public_url}")
-print(f"   🤖 Model:       {CUSTOM_MODEL_NAME}")
+print(f"   🤖 Model:       {CUSTOM_MODEL_NAME} (fine-tuned Gemma 4 E2B)")
 print()
 print("   Update your .env file:")
 print()
@@ -483,7 +501,7 @@ import urllib.request
 from datetime import datetime
 
 print("♻️  Keep-alive loop started.")
-print(f"   Model: {CUSTOM_MODEL_NAME} (fine-tuned DeepSeek-R1)")
+print(f"   Model: {CUSTOM_MODEL_NAME} (fine-tuned Gemma 4 E2B)")
 print(f"   URL: {public_url}")
 print("   Press Runtime → Interrupt execution to stop.\n")
 

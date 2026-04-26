@@ -178,13 +178,13 @@ async def websocket_chat(websocket: WebSocket):
                         )
                 else:
                     # No tool calls happened — use regular streaming
-                    if await external_client.is_available():
-                        async for token in external_client.chat_stream(messages):
+                    if await ollama_client.is_available():
+                        async for token in ollama_client.chat_stream(messages):
                             await websocket.send_text(
                                 json.dumps({"type": "token", "content": token})
                             )
-                    elif await ollama_client.is_available():
-                        async for token in ollama_client.chat_stream(messages):
+                    elif await external_client.is_available():
+                        async for token in external_client.chat_stream(messages):
                             await websocket.send_text(
                                 json.dumps({"type": "token", "content": token})
                             )
